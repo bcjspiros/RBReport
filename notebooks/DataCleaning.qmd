@@ -16,6 +16,12 @@ library(here)
 library(tidyverse)
 library(janitor)
 library(lubridate)
+
+# variables shared by multiple notebooks, mostly filepaths
+if (!exists("util_vars_loaded", mode = 'logical')) {
+    source(here("src/util_vars.R"))
+}
+
 ```
 
 # Combine all yearly open pantry visits csvs into one complete file
@@ -95,7 +101,7 @@ allopenpantry_df <- allopenpantry_df %>%
 ```{r}
 #| label: openpantry-writefile
 
-allopenpantry_filepath <- here("data/all_openpantry_visits.csv")
+# Note: allopenpantry_filepath sourced from util_vars.R
 write_csv(allopenpantry_df, allopenpantry_filepath)
 
 ```
