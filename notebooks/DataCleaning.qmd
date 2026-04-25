@@ -1,0 +1,103 @@
+---
+title: "Data cleaning"
+format: html
+editor: source
+---
+
+# Setup
+
+```{r}
+#| label: load-libs
+#| message: false
+#| warning: false
+#| output: false
+
+library(here)
+library(tidyverse)
+library(janitor)
+library(lubridate)
+```
+
+# Combine all yearly open pantry visits csvs into one complete file
+
+1.  Merge the two files for 2024 into one (only once)
+
+2.  Merge 2019 to 2025 Saturday and Friday open pantry counts (all dates)
+
+    i)  Clean column names with `janitor::clean_names`
+
+3.  Sort ascending by date
+
+4.  Add whether Saturday or Friday pantry to new `weekday` column
+
+5.  Add new `year` column for easier grouping
+
+6.  Remove all PII
+
+7.  Reorder columns to `visit_date`, `year`, `Weekday`, `account_number`
+
+8.  Write the new csv file `all_openpantry_visits` to public data directory
+
+### Merge 2024 files
+
+2024 is split into two files because we changed pantry type from `food:open pantry` to just `open pantry` in March of 2024. The two files need to be merged and rewritten as a single csv.
+
+Note that this only needed to be done once, it's historical data and shouldn't change.
+
+```{r}
+#| label: merge-2024
+#| message: false
+#| results: false
+
+twnty24_1 <- read_csv(here("data/sensitive_data/All_Visits_by_Date-2024-1.csv"))
+twnty24_2 <- read_csv(here("data/sensitive_data/All_Visits_by_Date-2024-2.csv"))
+
+twnty24 <- bind_rows(twnty24_1, twnty24_2)
+
+write_csv(twnty24, here("data/sensitive_data/All_Visits_by_Date-2024.csv"))
+```
+
+## Make one complete all open pantry visits file
+
+### Load merge and sort
+
+Load each yearly all visits file, merge them, and sort by date
+
+```{r}
+#| label: openpantry-loadmergesort
+#| message: false
+
+yrs <- c(2019, 2020, 2021, 2022, 2023, 2024, 2025)
+allopenpantry_df <-
+    map(yrs, function(yr) here(paste0("data/sensitive_data/All_Visits_by_Date-", yr, ".csv"))) %>% 
+    map(read_csv) %>% 
+    reduce(bind_rows) %>% 
+    clean_names() %>% 
+    arrange(visit_date)
+
+```
+
+### Remove PII and add weekday and year
+
+Extract `year` and `weekday`(day of week) columns from `visit_date` using lubridate. Remove all PII and reorder columns.
+
+```{r}
+#| label: openpantry-finalize
+
+allopenpantry_df <- allopenpantry_df %>% 
+    mutate(weekday = weekdays(visit_date),
+           year = year(visit_date)) %>% 
+    select(c(visit_date, year, weekday, account_number))
+```
+
+### Write new file
+
+```{r}
+#| label: openpantry-writefile
+
+allopenpantry_filepath <- here("data/all_openpantry_visits.csv")
+write_csv(allopenpantry_df, allopenpantry_filepath)
+
+```
+
+------------------------------------------------------------------------

@@ -1,3 +1,6 @@
+# data containing PII - should not be made public
+/data/sensitive_data/
+
 # History files
 .Rhistory
 .Rapp.history
