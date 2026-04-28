@@ -1,0 +1,94 @@
+---
+title: "Open Pantry Timeseries"
+author: "Jay Spiros"
+date: "`r Sys.Date()`"
+format: html
+editor: source
+---
+
+# Setup
+
+```{r}
+#| label: load-libs
+#| message: false
+#| warning: false
+#| output: false
+
+library(here)
+library(tidyverse)
+
+# variables shared by multiple notebooks, mostly filepaths
+if (!exists("util_vars_loaded", mode = 'logical')) {
+    source(here("src/util_vars.R"))
+}
+```
+
+# Load data for the timeseries plot
+
+```{r}
+#| label: load-data
+#| message: false
+
+allopenpantry_df <- read_csv(allopenpantry_filepath)
+```
+
+The goal here is to do a linegraph of the growth over time of the Saturday and Friday pantries.
+It appears that we used to do the "Friday" pantry on Tuesdays before the pandemic.
+**NOTE**: need to ask about this.
+
+```{r}
+allopenpantry_df %>% 
+    count(year, weekday, name = "visits")
+#    summarize(.by = c(year, weekday), # also works, less concise
+#             foo = n())
+
+```
+
+# Plot
+
+For now treat Tuesday and Friday visits as "Friday" visits, and ignore visits other than Saturday and Friday visits.
+
+The code below does the following steps:
+1. Replace "Thursday" with "Friday" in the `weekday` columns
+1. Filter out any random weekdays, keeping "Friday" and "Saturday"
+1. Add a new `visits` column, grouped by year then weekday that counts all visits for that weekday
+1. Adds a "Total" row beneath each year group with the Total visits for that year
+    i. This is done by grouping the rows per year
+    i. using `group_modify` to bind a new row to each group with the total
+    i. Remember to ungroup afterward or you'll end up with a bunch of nested tibbles
+
+```{r}
+
+openpantry_visits <- 
+    allopenpantry_df %>% 
+    mutate(weekday = replace_values(weekday, "Tuesday" ~ "Friday")) %>% 
+    filter(weekday %in% c("Saturday", "Friday")) %>% 
+    count(year, weekday, name = "visits") %>% 
+    group_by(year) %>%
+    group_modify(\(x, ...) x %>% 
+        bind_rows(
+            summarise(., weekday = "Total", visits = sum(visits))
+        )
+    ) %>% ungroup()
+    
+```
+```{r}
+openpantry_visits
+```
+
+
+```{r}
+#| label: plot-data
+#| fig-width: 10
+#| fig-height: 6
+
+ggplot(data = openpantry_visits, mapping = aes(x = factor(year), y = visits, group = weekday)) +
+    geom_line(aes(color = weekday), linewidth = 1.3) +
+    scale_color_manual(values = c("chocolate2","chartreuse4","firebrick2")) +
+    scale_x_discrete("Year") +
+    scale_y_continuous("Visits") +
+    theme_minimal()
+
+    
+```
+
