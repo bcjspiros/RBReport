@@ -40,7 +40,7 @@ It appears that we used to do the "Friday" pantry on Tuesdays before the pandemi
 allopenpantry_df %>% 
     count(year, weekday, name = "visits")
 #    summarize(.by = c(year, weekday), # also works, less concise
-#             foo = n())
+#             visits = n())
 
 ```
 
@@ -73,12 +73,12 @@ openpantry_visits <-
     
 ```
 ```{r}
-openpantry_visits
+head(openpantry_visits, 10)
 ```
 
 
 ```{r}
-#| label: plot-data
+#| label: plot-year-data
 #| fig-width: 10
 #| fig-height: 6
 
@@ -86,9 +86,51 @@ ggplot(data = openpantry_visits, mapping = aes(x = factor(year), y = visits, gro
     geom_line(aes(color = weekday), linewidth = 1.3) +
     scale_color_manual(values = c("chocolate2","chartreuse4","firebrick2")) +
     scale_x_discrete("Year") +
-    scale_y_continuous("Visits") +
     theme_minimal()
 
     
 ```
+For clarity, we'll limit the monthly data (total, not per pantry day) to 2023 onward
+
+```{r}
+# floor_date rounds each month's "name" to the 1st of the month
+# does not affect the actual count
+openpantry_visits_monthly <- 
+    allopenpantry_df %>%
+    filter(year > 2022) %>% 
+    filter(weekday %in% c("Tuesday", "Friday", "Saturday")) %>%
+    mutate(visit_ym = floor_date(visit_date, "month"),
+           month_name = month(visit_date, label = TRUE)) %>% 
+    count(visit_ym, month_name, name = "visits")
+
+openpantry_visits_monthly
+```
+
+
+```{r}
+#| label: plot-month-data
+#| fig-width: 10
+#| fig-height: 6
+
+library(ggsci)
+
+ggplot(data = openpantry_visits_monthly, mapping = aes(x = visit_ym, y = visits)) +
+    geom_col(aes(fill = month_name), color = "grey40") +
+    scale_x_date(date_labels = "%b-%Y", 
+                 date_breaks = "1 month",
+                 expand = c(0,0)) + # gets rid of the default X axis padding
+    coord_cartesian(ylim = c(250, NA)) +
+    scale_fill_viridis_d(option = "H", direction = 1) + 
+    theme_light() +
+    theme(axis.text.x = element_text(angle = 45, 
+                                     size = 8, 
+                                     hjust = 1.1,
+                                     vjust = 1),
+          legend.position = "none")
+    
+```
+```{r}
+ggsave(here("testplot.png"), width = 20, height = 12)
+```
+
 
