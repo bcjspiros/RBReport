@@ -57,12 +57,21 @@ Note that this only needed to be done once, it's historical data and shouldn't c
 #| message: false
 #| results: false
 
-twnty24_1 <- read_csv(here("data/sensitive_data/All_Visits_by_Date-2024-1.csv"))
-twnty24_2 <- read_csv(here("data/sensitive_data/All_Visits_by_Date-2024-2.csv"))
+twnty24_1 <- read_csv(here(sensitive_data_dir,
+                           openpantry_subdir,
+                           paste0(openpantry_prefix, 
+                                  "2024-1.csv")))
+twnty24_2 <- read_csv(here(sensitive_data_dir,
+                           openpantry_subdir,
+                           paste0(openpantry_prefix,
+                                  "2024-2.csv")))
 
 twnty24 <- bind_rows(twnty24_1, twnty24_2)
 
-write_csv(twnty24, here("data/sensitive_data/All_Visits_by_Date-2024.csv"))
+write_csv(twnty24, here(sensitive_data_dir,
+                           openpantry_subdir,
+                           paste0(openpantry_prefix,
+                                  "2024.csv")))
 ```
 
 ## Make one complete all open pantry visits file
@@ -75,9 +84,18 @@ Load each yearly all visits file, merge them, and sort by date
 #| label: openpantry-loadmergesort
 #| message: false
 
-yrs <- c(2019, 2020, 2021, 2022, 2023, 2024, 2025)
-allopenpantry_df <-
-    map(yrs, function(yr) here(paste0("data/sensitive_data/All_Visits_by_Date-", yr, ".csv"))) %>% 
+# generate a list of raw data files to load and merge
+# to add in the current year and last completed month.
+current_yd <- paste(year(Sys.Date()), month(Sys.Date() - months(1), label = TRUE), sep = "-")
+yrs <- list(2019, 2020, 2021, 2022, 2023, 2024, 2025, current_yd)
+
+openpantry_all_df <-
+    map(yrs, \(yr) here(sensitive_data_dir, 
+                        openpantry_subdir,
+                        paste0(openpantry_prefix, 
+                                yr, 
+                                ".csv"))
+        ) %>% 
     map(read_csv) %>% 
     reduce(bind_rows) %>% 
     clean_names() %>% 
@@ -92,19 +110,19 @@ Extract `year` and `weekday`(day of week) columns from `visit_date` using lubrid
 ```{r}
 #| label: openpantry-finalize
 
-allopenpantry_df <- allopenpantry_df %>% 
+openpantry_all_df <- openpantry_all_df %>% 
     mutate(weekday = weekdays(visit_date),
            year = year(visit_date)) %>% 
     select(c(visit_date, year, weekday, account_number))
 ```
 
-### Write new file
+### Write new Open Pantry All Visits file
+Filepath sourced from config
 
 ```{r}
 #| label: openpantry-writefile
 
-# Note: allopenpantry_filepath sourced from util_vars.R
-write_csv(allopenpantry_df, allopenpantry_filepath)
+write_csv(openpantry_all_df, here(openpantry_all_filepath))
 
 ```
 
