@@ -111,16 +111,18 @@ ggplot(data = openpantry_visits_yearly, mapping = aes(x = factor(year), y = visi
 
     
 ```
-For clarity, we'll limit the monthly data (total, not per pantry day) to 2023 onward
+For clarity, we'll limit the monthly data (total, not per pantry day) to a sliding 3 year window ending in the last complete month.
 
 ```{r}
-# floor_date rounds each month's "name" to the 1st of the month
-# does not affect the actual count
+start_date <- floor_date(Sys.Date(), "month") - months(1) - years(3)
+end_date <- floor_date(Sys.Date(), "month") - days(1)
+
+# floor_date below is needed to consolidate all days in a particular month into 1 date so count()
+# groups the counts by month, rather than multiple days per month. 
 openpantry_visits_monthly <- 
     openpantry_df %>%
-    filter(year > 2022) %>% 
-    filter(weekday %in% c("Tuesday", "Friday", "Saturday")) %>%
-    mutate(visit_ym = floor_date(visit_date, "month"),
+    filter(between(visit_date, start_date, end_date)) %>% 
+    mutate(visit_ym = floor_date(visit_date, "month"), # floor_date needed
            month_name = month(visit_date, label = TRUE)) %>% 
     count(visit_ym, month_name, name = "visits")
 
@@ -133,6 +135,10 @@ head(openpantry_visits_monthly)
 #| fig-width: 10
 #| fig-height: 6
 
+# calculate start month/year string and end month/end string for the subtitle.
+start_date_subtitle <- paste(month(start_date, label = TRUE), year(start_date))
+end_date_subtitle <- paste(month(end_date, label = TRUE), year(end_date))
+
 ggplot(data = openpantry_visits_monthly, mapping = aes(x = visit_ym, y = visits)) +
     geom_col(aes(fill = month_name), color = "grey40") +
     scale_x_date(date_labels = "%b-%Y", 
@@ -143,7 +149,7 @@ ggplot(data = openpantry_visits_monthly, mapping = aes(x = visit_ym, y = visits)
     theme_light() +
     labs(
         title = "Total Open Pantry Visits by Month",
-        subtitle = "Jan 2023 - Dec 2025",
+        subtitle = str_glue("{start_date_subtitle} - {end_date_subtitle}"),
         x = "Month and Year",
         y = "Visits"
     ) +
