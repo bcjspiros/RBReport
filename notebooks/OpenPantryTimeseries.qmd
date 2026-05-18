@@ -4,6 +4,8 @@ author: "Jay Spiros"
 date: "`r Sys.Date()`"
 format: html
 editor: source
+  markdown: 
+    wrap: 80
 ---
 
 # Setup
@@ -32,10 +34,7 @@ if (!exists("util_vars_loaded", mode = 'logical')) {
 openpantry_df <- read_csv(here(openpantry_all_filepath))
 ```
 
-The goal here is to do a linegraph of the growth over time of the Saturday and Friday pantries.
-It appears that we used to do the "Friday" pantry on Tuesdays before the pandemic.
-**NOTE**: need to ask about this.
-**NOTE**: Asked, we did do the "Friday" pantry on Tuesdays
+The goal here is to do a linegraph of the growth over time of the Saturday and Friday pantries. It appears that we used to do the "Friday" pantry on Tuesdays before the pandemic. **NOTE**: need to ask about this. **NOTE**: Asked, we did do the "Friday" pantry on Tuesdays
 
 ```{r}
 openpantry_df %>% 
@@ -50,13 +49,14 @@ openpantry_df %>%
 For now treat Tuesday and Friday visits as "Friday" visits, and ignore visits other than Saturday and Friday visits.
 
 The code below does the following steps:
-1. Replace "Thursday" with "Friday" in the `weekday` columns
-1. Filter out any random weekdays, keeping "Friday" and "Saturday"
-1. Add a new `visits` column, grouped by year then weekday that counts all visits for that weekday
-1. Adds a "Total" row beneath each year group with the Total visits for that year
-    i. This is done by grouping the rows per year
-    i. using `group_modify` to bind a new row to each group with the total
-    i. Remember to ungroup afterward or you'll end up with a bunch of nested tibbles
+
+1.  Replace "Thursday" with "Friday" in the `weekday` columns
+2.  Filter out any random weekdays, keeping "Friday" and "Saturday"
+3.  Add a new `visits` column, grouped by year then weekday that counts all visits for that weekday
+4.  Adds a "Total" row beneath each year group with the Total visits for that year
+    i)  This is done by grouping the rows per year
+    ii) Using `group_modify` to bind a new row to each group with the total
+    iii) Remember to ungroup afterward or you'll end up with a bunch of nested tibbles
 
 ```{r}
 
@@ -74,10 +74,10 @@ openpantry_visits_yearly <-
     ) %>% ungroup()
     
 ```
+
 ```{r}
 head(openpantry_visits_yearly, 10)
 ```
-
 
 ```{r}
 #| label: plot-year-data
@@ -86,22 +86,9 @@ head(openpantry_visits_yearly, 10)
 
 ggplot(data = openpantry_visits_yearly, mapping = aes(x = factor(year), y = visits, group = weekday)) +
     geom_line(aes(color = weekday), linewidth = 1.3) +
-    # Code below adds points and numbers to the graph.
-    # disabling for now to keep the graph simple
-    # geom_point(aes(color = weekday), size = 3) +
-    # geom_text(data = openpantry_visits_yearly %>% filter(weekday == "Friday"),
-    #           aes(x = factor(year), y = visits, group = weekday, label = visits),
-    #           vjust = 1.5,
-    #           hjust = 0.5
-    #           ) +
-    # geom_text(data = openpantry_visits_yearly %>% filter(weekday %in% c("Saturday", "Total")),
-    #           aes(x = factor(year), y = visits, group = weekday, label = visits),
-    #           vjust = -1.2,
-    #           hjust = 0.5
-    #           ) +
-    scale_color_manual(values = c("chocolate2","chartreuse4","firebrick2")) +
-    scale_x_discrete("Year") + # "discrete" necessary to display every year
-    theme_minimal() +
+    scale_color_manual(values = c("#FE922AFF", "#BE2102FF", "#4490FEFF" )) +
+    scale_x_discrete("Year", expand = c(0,0)) + # "discrete" necessary to display every year
+    theme_light() +
     labs(
         title = "Yearly Open Pantry Visits by Weekday, 2019 - 2025",
         x = "Year",
@@ -111,6 +98,7 @@ ggplot(data = openpantry_visits_yearly, mapping = aes(x = factor(year), y = visi
 
     
 ```
+
 For clarity, we'll limit the monthly data (total, not per pantry day) to a sliding 3 year window ending in the last complete month.
 
 ```{r}
@@ -129,7 +117,6 @@ openpantry_visits_monthly <-
 head(openpantry_visits_monthly)
 ```
 
-
 ```{r}
 #| label: plot-month-data
 #| fig-width: 10
@@ -145,7 +132,7 @@ ggplot(data = openpantry_visits_monthly, mapping = aes(x = visit_ym, y = visits)
                  date_breaks = "1 month",
                  expand = c(0.01, 0)) + # reduces the default X axis padding
     coord_cartesian(ylim = c(250, NA)) +
-    scale_fill_viridis_d(option = "H", direction = 1) + 
+    scale_fill_viridis_d(option = "turbo", direction = 1) + 
     theme_light() +
     labs(
         title = "Total Open Pantry Visits by Month",
@@ -160,9 +147,28 @@ ggplot(data = openpantry_visits_monthly, mapping = aes(x = visit_ym, y = visits)
           legend.position = "none")
     
 ```
+
 ```{r}
 # fully config saving plots
 # ggsave(here("testplot.png"), width = 20, height = 12)
 ```
 
+#### Random collection of ggplot code, saved in case it is needed later
 
+``` R
+# Code below adds points and numbers to the graph.
+# disabling for now to keep the graph simple
+# geom_point(aes(color = weekday), size = 3) +
+# geom_text(data = openpantry_visits_yearly %>% filter(weekday == "Friday"),
+#           aes(x = factor(year), y = visits, group = weekday, label = visits),
+#           vjust = 1.5,
+#           hjust = 0.5
+#           ) +
+# geom_text(data = openpantry_visits_yearly %>% filter(weekday %in% c("Saturday", "Total")),
+#           aes(x = factor(year), y = visits, group = weekday, label = visits),
+#           vjust = -1.2,
+#           hjust = 0.5
+#           ) +
+# scale_color_manual(values = c("chocolate2","chartreuse4","firebrick2")) +
+#scale_color_manual(values = c("#30123BFF", "#4454C4FF", "#4490FEFF", "#1FC8DEFF", "#29EFA2FF", ,"#7DFF56FF", "#C1F334FF", "#F1CA3AFF", "#FE922AFF", "#EA4F0DFF", "#BE2102FF", "#7A0403FF" ))
+```
