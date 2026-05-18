@@ -20,8 +20,8 @@ library(janitor)
 library(lubridate)
 
 # variables shared by multiple notebooks, mostly filepaths
-if (!exists("util_vars_loaded", mode = 'logical')) {
-    source(here("src/util_vars.R"))
+if (!exists("config_loaded", mode = 'logical')) {
+    source(here("config/config.R"))
 }
 
 ```
