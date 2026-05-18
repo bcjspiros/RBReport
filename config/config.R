@@ -1,7 +1,7 @@
 
 # set a flag that can be checked in the sourcing R file
 # to prevent this file from be loaded multiple times
-util_vars_loaded <- TRUE
+config_loaded <- TRUE
 
 # here library is needed for some path setting
 # it should already be loaded in the environment but if not we load it here
